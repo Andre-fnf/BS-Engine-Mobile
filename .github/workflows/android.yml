@@ -30,36 +30,105 @@ jobs:
       - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v2.0.2
 
+name: Android Build CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Instala dependências de sistema necessárias (incluindo para compilar extensões nativas)
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgl1-mesa-dev libpulse-dev \
+            libstdc++6 libgcc-s1
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.3
+
+      # Define o diretório do haxelib (padrão Unix)
+      - name: Set HAXELIB_ROOT
+        run: echo "HAXELIB_ROOT=$HOME/haxelib" >> $GITHUB_ENV
+
+      # Cache da pasta do haxelib para acelerar as execuções
+      - name: Cache haxelib
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.HAXELIB_ROOT }}
+          key: ${{ runner.os }}-haxelib-full-v2 # mude a chave se adicionar mais libs
+          restore-keys: |
+            ${{ runner.os }}-haxelib-
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2.0.2
+
       - name: Setup Java JDK
         uses: actions/setup-java@v2.3.1
         with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
+          distribution: 'zulu'
           java-version: '11'
 
-      - uses: nttld/setup-ndk@v1
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r15c
+          ndk-version: r23c  # Versão mais recente e compatível
 
-      # Runs a set of commands using the runners shell
-      - name: script run line haha
+      # Instala todas as bibliotecas Haxe necessárias (incluindo newgrounds e outras)
+      - name: Install Haxelibs
         run: |
-          mkdir -p "%HAXELIB_ROOT%"
-          haxelib setup "%HAXELIB_ROOT%"
+          mkdir -p $HAXELIB_ROOT
+          haxelib setup $HAXELIB_ROOT
+
+          # Libs básicas
           haxelib install lime 7.9.0 --quiet
           haxelib install openfl --quiet
           haxelib install flixel 4.9.0 --quiet
-          haxelib run lime setup
+          haxelib install flixel-addons 2.10.0 --quiet
+          haxelib install flixel-ui --quiet
+          haxelib install flixel-tools --quiet
+          haxelib install hscript --quiet
+          haxelib install actuate --quiet
+
+          # Libs de integração e utilidades comuns
+          haxelib install newgrounds --quiet          # API Newgrounds
+          haxelib install discord_rpc --quiet         # Discord Rich Presence
+          haxelib install hxvlc --quiet                # Reprodução de vídeos (VLC)
+          haxelib install extension-webm --quiet       # Suporte a WebM
+          haxelib install tjson --quiet                 # JSON tipado
+          haxelib install systools --quiet              # Ferramentas de sistema
+
+          # (Adicione aqui outras libs específicas do seu projeto)
+
+          # Lista todas as libs instaladas para verificação
+          haxelib list
+
+      # Configura o Lime com os caminhos do Android
+      - name: Configure Lime
+        run: |
+          haxelib run lime setup -y
           haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
           haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_ROOT
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
-          haxelib install flixel-tools --quiet
-          haxelib install flixel-ui --quiet
-          haxelib install hscript --quiet
-          haxelib install flixel-addons 2.10.0
-          haxelib install actuate 
-          haxelib list
-          haxelib run lime build android
+
+      # Compila o projeto para Android
+      - name: Build Android APK
+        run: |
+          haxelib run lime build android -D luajit  # Força o uso de LuaJIT (se necessário)
+
+      # Faz upload do APK gerado
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android Build
+          path: export/android/bin/app/build/outputs/apk/debug
+ild android
           
       - uses: actions/upload-artifact@v4
         with:
