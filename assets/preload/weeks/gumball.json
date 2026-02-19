@@ -1,0 +1,22 @@
+{
+	"songs": [
+		["The Stranger", "gumball", [146, 113, 253]],
+		["The Rapper", "gumball", [146, 113, 253]],
+		["The Battle", "gumball", [146, 113, 253]]
+	],
+
+	"weekCharacters": [
+		"",
+		"bf",
+		"gf"
+	],
+	"weekBackground": "",
+
+	"storyName": "Bue Cat",
+	"weekBefore": "tutorial",
+	"weekName": "Week 1",
+	"startUnlocked": true,
+
+	"hideStoryMode": false,
+	"hideFreeplay": false
+}
